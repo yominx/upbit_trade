@@ -2,62 +2,29 @@ import os
 import jwt
 import uuid
 import hashlib
+import json
+
+import userInfo
+import makeToken 
+import printFunctions as PF 
+import chartFunctions as CF 
 from urllib.parse import urlencode
 
 import requests
 
-#Account infos
-access_key = 'c8KY91Z3cjl5jOubzkExjAy6Mq3jTdjl2AZxtbrw'
-secret_key = 'ez1GkoQKZ9NCeHmwvJfZBSO1uJvx5f2uhigYQiGE'
-server_url = 'https://api.upbit.com'
+def getAccountInfo():
+	infos = userInfo.getUserInfo()
+	print("Available accounts are below: ")
+	for i in infos:
+		print(i,end = "  ")
+	user = input("\nWhich account you want to use? ")
+	userinfo = infos[user]
+	access_key = userinfo['access_key']
+	secret_key = userinfo['secret_key']
+	return (access_key, secret_key)
 
-def make_token(query=None, txids = None):
-	if query != None:
-		query_string = urlencode(query).encode()
-		if txids!=None:
-			txids_query_string = '&'.join(["txids[]={}".format(txid) for txid in txids])
-
-			query['txids[]'] = txids
-			query_string = "{0}&{1}".format(query_string, txids_query_string).encode()
-		m = hashlib.sha512()
-		m.update(query_string)
-		query_hash = m.hexdigest()
-		payload = {
-		    'access_key': access_key,
-		    'nonce': str(uuid.uuid4()),
-		    'query_hash': query_hash,
-		    'query_hash_alg': 'SHA512',
-		}
-	else: 
-		payload = {
-		    'access_key': access_key,
-		    'nonce': str(uuid.uuid4()),
-		}
-
-
-	encoded_token = jwt.encode(payload, secret_key,'HS512').encode()
-	jwt_token = encoded_token.decode('utf-8')
-	authorize_token = 'Bearer {}'.format(jwt_token)
-	headers = {"Authorization": authorize_token}
-
-	return headers
-
-def print_json(json):
-	if type(json) is list:
-		print("List_____________________\n")
-		for i in json:
-			print_json(i)
-	elif type(json) is dict:
-		print("Dict____________\n")
-		for i in json:
-			print(i, ": ", json[i])
-	else: 
-		print("unknown type... type is ", type(json))	
-	
-	print()
-
-def check_wallet_net_input():
-	headers = make_token()
+def check_wallet_net_input(access_key, secret_key):
+	headers = makeToken.makeToken(access_key,secret_key)
 	res = requests.get(server_url + "/v1/deposits", headers=headers).json()
 	deposit = 0
 	for tx in res:
@@ -65,7 +32,7 @@ def check_wallet_net_input():
 			deposit = deposit + float(tx['amount'])
 	print('You deposited ', deposit, 'Won')
 
-	headers = make_token()
+	headers = makeToken.makeToken(access_key,secret_key)
 	res = requests.get(server_url + "/v1/withdraws", headers=headers).json()
 	withdraw = 0
 	for tx in res:
@@ -74,114 +41,81 @@ def check_wallet_net_input():
 	print('You withdrawed ', withdraw, 'Won')
 	print('Net input: you deposited ', (deposit-withdraw)/10000,'×10⁴ Won')
 
-def get_price_info(market: str, minute: str, count: int):
-	url = "https://api.upbit.com/v1/candles/minutes/" + minute[:-3]
-	querystring = {"market":market,"count": str(count)}
-	response = requests.request("GET", url, params=querystring).json()
-	price_info = []
-	for res in response:
-		price_info.append(float(res['trade_price']))
 
-	return price_info
-
-def crossed(priceinfo: list, avg1, avg2) -> int:
-	assert(avg1<avg2 and avg2 < 100)
-	### Return true if AVG_15 price have passed AVG_50. 
-	AVG_15_RECENT = sum(RFR_PRICE[1:16])/15
-	AVG_50_RECENT = sum(RFR_PRICE[1:51])/50
-
-	AVG_15_PAST = sum(RFR_PRICE[2:17])/15
-	AVG_50_PAST = sum(RFR_PRICE[2:52])/50
-	
-	print(AVG_15_RECENT)
-	print(AVG_50_RECENT)
-	print(AVG_15_PAST)
-	print(AVG_50_PAST)
-
-	if AVG_50_PAST> AVG_15_PAST and AVG_50_RECENT < AVG_15_RECENT:
-		return 1
-	elif AVG_50_PAST < AVG_15_PAST and AVG_50_RECENT > AVG_15_RECENT:
-		return -1
-	else: 
-		return 0
-
-def buy_market_query(market: str, order_price: int):
-	return { 'market': market, 'side': 'bid', 'volume': null, 'price': str(order_price), 'ord_type': 'price', }
-def sell_market_query(market: str, order_price: int):
-	return { 'market': market, 'side': 'ask', 'volume': 10, 'price': null, 'ord_type': 'market', }
+# def buy_market_query(market: str, order_price: int):
+# 	return { 'market': market, 'side': 'bid', 'price': str(order_price), 'ord_type': 'price', }
+# def sell_market_query(market: str, order_price: int):
+# 	return { 'market': market, 'side': 'ask', 'volume': 10, 'ord_type': 'market', }
 
 
 if __name__ == "__main__":
+	userInfo.saveUserInfo()	
+	(access_key, secret_key) = getAccountInfo()
+	server_url = 'https://api.upbit.com'
 	while True:
-		print(
-			"__________MENU__________\n"
-			"Select Menu from below (Capitalize-dependent)\n"
-			"\"Wallet\" \t: Show your wallet\n"
-			"\"Buy\"  \t\t: Buy(bid)  Menu\n"
-			"\"Sell\" \t\t: Sell(ask) Menu\n"
-			"\"Market\" \t: Show current price of the market\n"
-			"\"AutoTrade\"\t: Trade automatically by using MA-cross algorithm\n"
-			"\"Quit\"\t: Exit program\n"
-			)
+		PF.printMenu()
 
 		selected = input('').lower()
 		if selected == 'wallet':
-			headers = make_token()
-			res_accounts = requests.get(server_url + "/v1/accounts", headers=headers)
-			print_json(res_accounts.json())
+			headers = makeToken.makeToken(access_key,secret_key)
+			wallet_info = requests.get(server_url + "/v1/accounts", headers=headers).json()
+			for elem in wallet_info:
+				del elem['locked']
+				del elem['avg_buy_price']
+				del elem['avg_buy_price_modified']
+				del elem['unit_currency']
+			PF.printJson(wallet_info)
 
 		elif selected == 'buy':
 			print("Not yet")
 		elif selected == 'sell':
 			print("Not yet")
-
 		elif selected == 'market':
 			print("Not yet")
 
 		elif selected == 'autotrade':
 			print("Not yet")
-
+			
 		elif selected == 'quit':
 			print("Exit the program.")
 			break
 
+		elif selected == 'updateaccount':
+			print("Not yet")
+
 		else: 
 			print("Invalid request")
 
+		input("Press Enter to continue...")
 
-	{
-		'''
-		query = {
-	    	'market': 'KRW-RFR',
-		}
-		headers = make_token(query)
-		res_order_chance = requests.get(server_url + "/v1/orders/chance", params=query, headers=headers)
-		headers = make_token()
-		res_accounts = requests.get(server_url + "/v1/accounts", headers=headers)
-		print_json(res_order_chance.json())
-		print_json(res_accounts.json())
-		'''
+
+	query = {
+		'market': 'KRW-RFR',
 	}
+	headers = makeToken.makeToken(access_key, secret_key, query)
+	res_order_chance = requests.get(server_url + "/v1/orders/chance", params=query, headers=headers)
+	headers = makeToken.makeToken(access_key, secret_key)
+	res_accounts = requests.get(server_url + "/v1/accounts", headers=headers)
+	PF.printJson(res_order_chance.json())
+	PF.printJson(res_accounts.json())
+
 
 
 
 	rfr_order_query = {
-	    'market': 'KRW-RFR',
-	    'side': 'ask',
-	    'volume': '100',
-	    'price': '100.0',
-	    'ord_type': 'limit',
+		'market': 'KRW-RFR',
+		'side': 'ask',
+		'volume': '100',
+		'price': '100.0',
+		'ord_type': 'limit',
 	}
-	headers = make_token(rfr_order_query)
+	headers = makeToken.makeToken(access_key, secret_key, rfr_order_query)
 	#res_ordered = requests.post(server_url + "/v1/orders", params=rfr_order_query, headers=headers)
-	#print_json(res_ordered.json())
+	#printJson(res_ordered.json())
+	#RFR_PRICE = get_price_info('KRW-RFR', '15min', 100)
+	#crossed(RFR_PRICE, 15, 50)
 
-	#check_wallet_net_input()
-
-	RFR_PRICE = get_price_info('KRW-RFR', '15min', 100)
-	crossed(RFR_PRICE, 15, 50)
-
-''' watch crossing
+	''' watch crossing
 	cross = crossed(RFR_PRICE, 15, 50)
 	if cross == 1: # buy
 		buy(MARKET_NAME, 'market', KRW price = ?)
@@ -190,4 +124,4 @@ if __name__ == "__main__":
 	else:
 		None
 
-'''
+	'''
