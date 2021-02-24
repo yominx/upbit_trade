@@ -13,17 +13,14 @@ def getPriceInfo(market: str, minute: str, count: int):
 def crossed(priceinfo: list, avg1, avg2):
     assert(avg1<avg2 and avg2 < 100)
     ### Return true if AVG_15 price have passed AVG_50. 
-    AVG_15_RECENT = sum(priceinfo[1:16])/15
-    AVG_50_RECENT = sum(priceinfo[1:51])/50
+    AVG_15_RECENT = sum(priceinfo[:15])/15
+    AVG_50_RECENT = sum(priceinfo[:50])/50
 
-    AVG_15_PAST = sum(priceinfo[2:17])/15
-    AVG_50_PAST = sum(priceinfo[2:52])/50
+    AVG_15_PAST = sum(priceinfo[1:16])/15
+    AVG_50_PAST = sum(priceinfo[1:51])/50
 
-    print(AVG_15_RECENT)
-    print(AVG_50_RECENT)
-    print(AVG_15_PAST)
-    print(AVG_50_PAST)
-
+    print(AVG_50_RECENT-AVG_15_RECENT)
+    print(AVG_50_PAST-AVG_15_PAST)
     if AVG_50_PAST> AVG_15_PAST and AVG_50_RECENT < AVG_15_RECENT:
         return 1
     elif AVG_50_PAST < AVG_15_PAST and AVG_50_RECENT > AVG_15_RECENT:

@@ -1,3 +1,6 @@
+from makeToken import makeToken
+import requests
+
 def printMenu():
     print(
     "__________MENU__________\n"
@@ -27,3 +30,5 @@ def printJson(json, depth = 0):
         print("unknown type... type is ", type(json))	
 
     print()
+
+
