@@ -14,7 +14,7 @@ def sellMarketQuery(market, volume):
 def buy_all(access_key, secret_key, market) :
 	marketInfo = WF.marketValidInfo(access_key,secret_key,market)['bid_account']
 	walletKRW = float(marketInfo['balance'])
-	query = buyMarketQuery(market, int(0.99 * walletKRW))
+	query = buyMarketQuery(market, int(walletKRW))
 	headers = makeToken(access_key,secret_key,query)
 	res = requests.post('https://api.upbit.com/v1/orders', params=query, headers=headers).json()
 	PF.printJson(res)
@@ -22,7 +22,7 @@ def buy_all(access_key, secret_key, market) :
 def sell_all(access_key, secret_key, market) :
 	marketInfo = WF.marketValidInfo(access_key,secret_key,market)['ask_account']
 	volume = float(marketInfo['balance'])
-	query = buyMarketQuery(market, int(0.99 * volume))
+	query = sellMarketQuery(market, int(volume))
 	headers = makeToken(access_key,secret_key,query)
 	res = requests.post('https://api.upbit.com/v1/orders', params=query, headers=headers).json()
 	PF.printJson(res)
@@ -31,9 +31,6 @@ def MACross(market: str, minute: str, shortMA: int, longMA: int, access_key, sec
 	price = CF.getPriceInfo(market, minute, longMA+10)
 	cross = CF.crossed(price, shortMA, longMA)
 
-
-	sell_all(access_key, secret_key, market)
-	
 	
 	if cross == 1: # buy
 		print("Upward cross! Buy.")

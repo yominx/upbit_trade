@@ -38,7 +38,13 @@ if __name__ == "__main__":
 		selected = input('').lower()
 		if selected == 'wallet':
 			WF.walletInfo(access_key, secret_key)
-
+		elif selected == 'allmarkets':
+			url = "https://api.upbit.com/v1/market/all"
+			querystring = {"isDetails":"false"}
+			res = requests.request("GET", url, params=querystring).json()
+			for item in res:
+				if item['market'][:3] == 'KRW':
+					PF.printJson(item)
 		elif selected == 'buy':
 			print("Not yet")
 		elif selected == 'sell':
@@ -47,9 +53,12 @@ if __name__ == "__main__":
 			print("Not yet")
 
 		elif selected == 'autotrade':
+			market = input("Which market do you want to trade? ")
+			market = 'KRW-'+market
+			print("You selected ", market)
 			while True:
-				TF.MACross('KRW-XRP','15min', 15, 50, access_key, secret_key)
-				time.sleep(300)
+				TF.MACross(market,'15min', 15, 50, access_key, secret_key)
+				time.sleep(800)
 
 		elif selected == 'updateaccount':
 			(access_key, secret_key) = getAccountInfo()

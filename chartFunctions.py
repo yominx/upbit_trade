@@ -3,7 +3,7 @@ import json
 
 def getPriceInfo(market: str, minute: str, count: int):
     url = "https://api.upbit.com/v1/candles/minutes/" + minute[:-3]
-    querystring = {"market":market,"count": str(count)}
+    querystring = {"market":market, "count": str(count)}
     response = requests.request("GET", url, params=querystring).json()
     price_info = []
     for res in response:
@@ -19,6 +19,8 @@ def crossed(priceinfo: list, avg1, avg2):
     AVG_15_PAST = sum(priceinfo[1:16])/15
     AVG_50_PAST = sum(priceinfo[1:51])/50
 
+    print("____________")
+    print(priceinfo)
     print(AVG_50_RECENT-AVG_15_RECENT)
     print(AVG_50_PAST-AVG_15_PAST)
     if AVG_50_PAST> AVG_15_PAST and AVG_50_RECENT < AVG_15_RECENT:
